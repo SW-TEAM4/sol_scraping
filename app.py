@@ -1,15 +1,9 @@
+import pymysql
 from fastapi import FastAPI, HTTPException, Query
 from scripts.finance_scraper import update_stock_data
 from scripts.portfolio_scraper import evaluate_portfolio
 from scripts.news_scraper import scrape_headlines, scrape_article
 from fastapi.middleware.cors import CORSMiddleware
-import FinanceDataReader as fdr
-from datetime import datetime, timedelta
-
-
-
-
-
 app = FastAPI()
 
 # CORS 설정
@@ -38,6 +32,50 @@ async def update_all():
     except Exception as e:
         return {"error": str(e)}
 
+
+# 카테고리별 주식 데이터
+@app.get("/stocks/category/{category}")
+async def get_stocks_by_category(category: str):
+    """
+    특정 카테고리의 주식 데이터를 반환합니다.
+    """
+    try:
+        connection = pymysql.connect(
+            host="localhost",
+            user="root",
+            password="2561",
+            database="imsolo"
+        )
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+        # 카테고리에 해당하는 주식 데이터 조회
+        cursor.execute("""
+            SELECT 
+                ticker, 
+                company_name as companyName, 
+                category, 
+                current_price as currentPrice, 
+                yesterday_change as yesterdayChange,
+                one_month_change as oneMonthChange, 
+                three_month_change as threeMonthChange, 
+                one_year_change as oneYearChange
+            FROM stock_data
+            WHERE category = %s
+        """, (category,))
+
+        stocks = cursor.fetchall()
+        connection.close()
+
+        if not stocks:
+            raise HTTPException(status_code=404, detail=f"Category '{category}' not found or no stocks available.")
+
+        return stocks
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"주식 데이터를 가져오는 중 오류 발생: {str(e)}")
+
+
 # ------------------- Portfolio 관련 API -------------------
 @app.get("/portfolio/list")
 async def evaluate_portfolio_api():
@@ -62,6 +100,17 @@ def get_headlines(limit: int = Query(default=10, description="가져올 기사 �
         if not headlines:
             raise HTTPException(status_code=404, detail="헤드라인을 찾을 수 없습니다.")
         return {"headlines": headlines}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
+
+@app.get("/news/article")
+def get_article(url: str = Query(default=..., description="기사를 가져올 URL")):
+    """매일경제 특정 기사 URL에서 내용을 반환합니다."""
+    try:
+        article_data = scrape_article(url)
+        if article_data["title"] == "오류 발생":
+            raise HTTPException(status_code=404, detail="기사 내용을 찾을 수 없습니다.")
+        return article_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
 
