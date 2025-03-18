@@ -2,8 +2,9 @@ import pymysql
 from fastapi import FastAPI, HTTPException, Query
 from scripts.finance_scraper import update_stock_data
 from scripts.portfolio_scraper import evaluate_portfolio
-from scripts.news_scraper import scrape_headlines, scrape_article
+from scripts.news_scraper import scrape_headlines
 from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI()
 
 # CORS 설정
@@ -14,6 +15,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ------------------- Stock 관련 API -------------------
 @app.post("/update/{category}")
@@ -103,109 +105,12 @@ def get_headlines(limit: int = Query(default=10, description="가져올 기사 �
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
 
-@app.get("/news/article")
-def get_article(url: str = Query(default=..., description="기사를 가져올 URL")):
-    """매일경제 특정 기사 URL에서 내용을 반환합니다."""
-    try:
-        article_data = scrape_article(url)
-        if article_data["title"] == "오류 발생":
-            raise HTTPException(status_code=404, detail="기사 내용을 찾을 수 없습니다.")
-        return article_data
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
+
 
 # ------------------- Market Indices 관련 API -------------------
 @app.get("/market/indices")
-async def get_market_indices():
-    try:
-        import FinanceDataReader as fdr
-        from datetime import datetime, timedelta
-        import pandas as pd
-
-        # 최근 10일간의 데이터를 가져와서 가장 최근 거래일 찾기
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=10)  # 10일 전 데이터부터 조회
-
-        # 모든 지수 데이터 가져오기
-        kospi_recent = fdr.DataReader('KS11', start_date, end_date)
-        kosdaq_recent = fdr.DataReader('KQ11', start_date, end_date)
-        dow_recent = fdr.DataReader('DJI', start_date, end_date)
-        nasdaq_recent = fdr.DataReader('IXIC', start_date, end_date)
-        sp500_recent = fdr.DataReader('US500', start_date, end_date)
-        usd_krw_recent = fdr.DataReader('USD/KRW', start_date, end_date)
-
-        if kospi_recent.empty:
-            raise HTTPException(status_code=404, detail="최근 거래 데이터를 찾을 수 없습니다.")
-
-        # 각 지수별 최근 거래일과 이전 거래일 찾기
-        def get_index_data(df):
-            if df.empty:
-                return 0, 0, 0, ""
-
-            latest = df.index[-1]
-            latest_value = float(df['Close'].iloc[-1])
-
-            if len(df) > 1:
-                previous_value = float(df['Close'].iloc[-2])
-                change = latest_value - previous_value
-                change_pct = (change / previous_value) * 100 if previous_value != 0 else 0
-            else:
-                change = 0
-                change_pct = 0
-
-            latest_date_str = latest.strftime('%Y-%m-%d') if isinstance(latest, datetime) else str(latest).split(' ')[0]
-
-            return latest_value, change, change_pct, latest_date_str
-
-        # 각 지수 데이터 계산
-        kospi_value, kospi_change, kospi_change_pct, kospi_date = get_index_data(kospi_recent)
-        kosdaq_value, kosdaq_change, kosdaq_change_pct, kosdaq_date = get_index_data(kosdaq_recent)
-        dow_value, dow_change, dow_change_pct, dow_date = get_index_data(dow_recent)
-        nasdaq_value, nasdaq_change, nasdaq_change_pct, nasdaq_date = get_index_data(nasdaq_recent)
-        sp500_value, sp500_change, sp500_change_pct, sp500_date = get_index_data(sp500_recent)
-        usd_krw_value, usd_krw_change, usd_krw_change_pct, usd_krw_date = get_index_data(usd_krw_recent)
-
-        return {
-            'kospi': {
-                'current': round(kospi_value, 2),
-                'change': round(kospi_change, 2),
-                'changePercent': round(kospi_change_pct, 2),
-                'date': kospi_date
-            },
-            'kosdaq': {
-                'current': round(kosdaq_value, 2),
-                'change': round(kosdaq_change, 2),
-                'changePercent': round(kosdaq_change_pct, 2),
-                'date': kosdaq_date
-            },
-            'dow': {
-                'current': round(dow_value, 2),
-                'change': round(dow_change, 2),
-                'changePercent': round(dow_change_pct, 2),
-                'date': dow_date
-            },
-            'nasdaq': {
-                'current': round(nasdaq_value, 2),
-                'change': round(nasdaq_change, 2),
-                'changePercent': round(nasdaq_change_pct, 2),
-                'date': nasdaq_date
-            },
-            'sp500': {
-                'current': round(sp500_value, 2),
-                'change': round(sp500_change, 2),
-                'changePercent': round(sp500_change_pct, 2),
-                'date': sp500_date
-            },
-            'usdKrw': {
-                'current': round(usd_krw_value, 2),
-                'change': round(usd_krw_change, 2),
-                'changePercent': round(usd_krw_change_pct, 2),
-                'date': usd_krw_date
-            }
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        print(traceback.format_exc())  # 상세 오류 로그 출력
-        raise HTTPException(status_code=500, detail=f"시장 지수 데이터를 가져오는 중 오류 발생: {str(e)}")
+def get_market_indices():
+    """
+    Market indices 업데이트 상태 확인용 엔드포인트.
+    """
+    return {"message": "Market indices are being updated every 5 minutes."}
