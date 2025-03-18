@@ -104,7 +104,7 @@ async def update_stock_data(category=None):
 
                         # 기존 데이터 업데이트
                         cursor.execute("""
-                            UPDATE stock_data
+                            UPDATE category
                             SET company_name = %s,
                                 category = %s,
                                 current_price = %s,
@@ -129,7 +129,7 @@ async def update_stock_data(category=None):
                         if cursor.rowcount == 0:  # 업데이트된 행이 없으면 삽입
                             print(f"[Info] No existing data for ticker {ticker}, inserting new record.")
                             cursor.execute("""
-                                INSERT INTO stock_data (ticker, company_name, category, current_price, yesterday_change,
+                                INSERT INTO category (ticker, company_name, category, current_price, yesterday_change,
                                                         one_month_change, three_month_change, one_year_change, last_updated)
                                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
                             """, (

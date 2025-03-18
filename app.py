@@ -59,7 +59,7 @@ async def get_stocks_by_category(category: str):
                 one_month_change as oneMonthChange, 
                 three_month_change as threeMonthChange, 
                 one_year_change as oneYearChange
-            FROM stock_data
+            FROM category
             WHERE category = %s
         """, (category,))
 

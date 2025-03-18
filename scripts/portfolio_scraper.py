@@ -66,8 +66,6 @@ async def evaluate_portfolio():
             SELECT 
                 id, 
                 krw_balance, 
-                stock_count,
-                total_purchase_amount,
                 stock_name, 
                 ticker, 
                 stock_quantity, 
@@ -94,8 +92,6 @@ async def evaluate_portfolio():
 
                     # 필드명 변환 (snake_case를 camelCase로)
                     item["krwBalance"] = item.pop("krw_balance")
-                    item["stockCount"] = item.pop("stock_count")
-                    item["totalPurchaseAmount"] = item.pop("total_purchase_amount")
                     item["stockName"] = item.pop("stock_name")
                     item["stockQuantity"] = item.pop("stock_quantity")
                     item["averagePurchasePrice"] = item.pop("average_purchase_price")
