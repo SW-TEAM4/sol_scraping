@@ -1,0 +1,39 @@
+Metadata-Version: 2.1
+Name: FDR
+Version: 0.1.0
+Summary: CrowdStrike Falcon Data Replicator
+Home-page: https://github.com/CrowdStrike/FDR
+Author: CrowdStrike
+Author-email: solution.architecture@crowdstrike.com
+Maintainer: CrowdStrike
+Maintainer-email: solution.architecture@crowdstrike.com
+Project-URL: Source, https://github.com/CrowdStrike/FDR
+Project-URL: Tracker, https://github.com/CrowdStrike/FDR/issues
+Keywords: crowdstrike,falcon,fdr
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Operating System :: Unix
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Framework :: Flake8
+Classifier: License :: OSI Approved :: The Unlicense (Unlicense)
+Classifier: Topic :: Security
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Utilities
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+
+Package coming soon

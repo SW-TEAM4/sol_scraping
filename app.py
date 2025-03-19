@@ -5,6 +5,13 @@ from scripts.portfolio_scraper import evaluate_portfolio
 from scripts.news_scraper import scrape_headlines
 from fastapi.middleware.cors import CORSMiddleware
 
+DB_CONFIG = {
+    "host": "localhost",
+    "user": "root",
+    "password": "2561",
+    "database": "imsolo",
+    "charset": "utf8mb4"
+}
 app = FastAPI()
 
 # CORS 설정
@@ -96,16 +103,35 @@ async def evaluate_portfolio_api():
 # ------------------- News 관련 API -------------------
 @app.get("/news/headlines")
 def get_headlines(limit: int = Query(default=10, description="가져올 기사 수 (기본값: 10)")):
-    """매일경제 증권 최신 뉴스의 헤드라인과 링크를 반환합니다."""
+    """MySQL에서 뉴스 데이터를 가져옵니다."""
     try:
-        headlines = scrape_headlines(limit=limit)
+        connection = pymysql.connect(**DB_CONFIG)
+        cursor = connection.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute("SELECT * FROM news ORDER BY publication_date DESC LIMIT %s", (limit,))
+        headlines = cursor.fetchall()
+
+        print("MySQL에서 가져온 뉴스 데이터:", headlines)  # 디버깅용 로그 추가
+
+        cursor.close()
+        connection.close()
+
         if not headlines:
             raise HTTPException(status_code=404, detail="헤드라인을 찾을 수 없습니다.")
+
+        # 빈 값 처리: 빈 문자열 대신 기본값 설정
+        for headline in headlines:
+            if not headline["summary"]:
+                headline["summary"] = "요약 정보 없음"
+            if not headline["link"]:
+                headline["link"] = "#"
+            if not headline["title"]:
+                headline["title"] = "제목 없음"
+
         return {"headlines": headlines}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
-
-
 
 # ------------------- Market Indices 관련 API -------------------
 @app.get("/market/indices")
