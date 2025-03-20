@@ -130,8 +130,8 @@ async def update_stock_data(category=None):
                             print(f"[Info] No existing data for ticker {ticker}, inserting new record.")
                             cursor.execute("""
                                 INSERT INTO category (ticker, company_name, category, current_price, yesterday_change,
-                                                        one_month_change, three_month_change, one_year_change, last_updated)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                                                     one_month_change, three_month_change, one_year_change, last_updated)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
                             """, (
                                 ticker,
                                 google_data.get("companyName"),
