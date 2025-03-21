@@ -44,19 +44,42 @@ def fetch_market_indices():
                 change_percent = round((change / previous["Close"]) * 100, 2)
                 date = latest.name.strftime("%Y-%m-%d %H:%M:%S")
 
+                # 먼저 데이터가 존재하는지 확인
                 cursor.execute(
-                    """
-                    INSERT INTO stock_index (index_name, current, change_value, change_percent, date)
-                    VALUES (%s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                        current = VALUES(current),
-                        change_value = VALUES(change_value),
-                        change_percent = VALUES(change_percent),
-                        date = VALUES(date)
-                    """,
-                    (name, current, change, change_percent, date),
+                    "SELECT 1 FROM stock_index WHERE index_name = %s",
+                    (name,)
                 )
+                exists = cursor.fetchone() is not None
 
+                if exists:
+                    # 데이터가 존재하면 업데이트
+                    cursor.execute(
+                        """
+                        UPDATE stock_index
+                        SET current = %s,
+                            change_value = %s,
+                            change_percent = %s,
+                            date = %s
+                        WHERE index_name = %s
+                        """,
+                        (current, change, change_percent, date, name)
+                    )
+                    print(f"[Success] Updated index: {name}")
+                else:
+                    # 데이터가 없으면 삽입
+                    cursor.execute(
+                        """
+                        INSERT INTO stock_index (index_name, current, change_value, change_percent, date)
+                        VALUES (%s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            current = VALUES(current),
+                            change_value = VALUES(change_value),
+                            change_percent = VALUES(change_percent),
+                            date = VALUES(date)
+                        """,
+                        (name, current, change, change_percent, date)
+                    )
+                    print(f"[Success] Updated or Inserted index: {name}")
         connection.commit()
         cursor.close()
         connection.close()
@@ -70,7 +93,7 @@ def fetch_market_indices():
 schedule.every(5).seconds.do(fetch_market_indices)  # 5초마다 업데이트 진행
 
 if __name__ == "__main__":
-    print("스케줄러가 시작되었습니다.")
+    print("지수 데이터 스케줄러가 시작되었습니다.")
     while True:
         try:
             schedule.run_pending()  # 예약된 작업 실행

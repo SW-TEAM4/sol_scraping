@@ -63,7 +63,7 @@ def scheduled_task():
 schedule.every(5).seconds.do(scheduled_task) #5초마다 업데이트 진행
 
 if __name__ == "__main__":
-    print("스케줄러가 시작되었습니다.")
+    print("카테고리 스케줄러가 시작되었습니다.")
     while True:
         try:
             schedule.run_pending()  # 예약된 작업 실행

@@ -1,8 +1,6 @@
 import pymysql
 from fastapi import FastAPI, HTTPException, Query
 from scripts.finance_scraper import update_stock_data
-from scripts.portfolio_scraper import evaluate_portfolio
-from scripts.news_scraper import scrape_headlines
 from fastapi.middleware.cors import CORSMiddleware
 
 DB_CONFIG = {
@@ -24,22 +22,18 @@ app.add_middleware(
 )
 
 
-# ------------------- Stock 관련 API -------------------
-@app.post("/update/{category}")
-async def update_category(category: str):
-    try:
-        await update_stock_data(category=category)
-        return {"message": f"{category} data updated successfully"}
-    except Exception as e:
-        return {"error": str(e)}
-
+# ------------------- Category 관련 API -------------------
 @app.post("/update_all")
 async def update_all():
+    """
+    모든 카테고리 데이터를 업데이트합니다.
+    """
     try:
-        await update_stock_data()
+        await update_stock_data()  # 모든 카테고리 업데이트
         return {"message": "All categories updated successfully"}
     except Exception as e:
         return {"error": str(e)}
+
 
 
 # 카테고리별 주식 데이터
@@ -83,22 +77,6 @@ async def get_stocks_by_category(category: str):
         import traceback
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"주식 데이터를 가져오는 중 오류 발생: {str(e)}")
-
-
-# ------------------- Portfolio 관련 API -------------------
-@app.get("/portfolio/list")
-async def evaluate_portfolio_api():
-    """
-    포트폴리오 데이터를 평가하고 결과를 JSON 형식으로 반환합니다.
-    """
-    try:
-        result = await evaluate_portfolio()
-        if not result:  # 결과가 비어 있는 경우 에러 반환
-            raise HTTPException(status_code=404, detail="No portfolio data found.")
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 # ------------------- News 관련 API -------------------
 @app.get("/news/headlines")

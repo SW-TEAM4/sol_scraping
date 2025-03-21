@@ -73,8 +73,10 @@ async def fetch_google_finance_data(session, ticker):
             print(f"[Error] Google Finance for {ticker}: {e}")
             return {"currentPrice": None, "companyName": None}
 
-async def update_stock_data(category=None):
-    """특정 카테고리 또는 모든 데이터를 업데이트하고 DB에 저장합니다."""
+async def update_stock_data():
+    """
+    모든 카테고리 데이터를 업데이트하고 DB에 저장합니다.
+    """
     try:
         connection = pymysql.connect(
             host="localhost",
@@ -85,10 +87,8 @@ async def update_stock_data(category=None):
         cursor = connection.cursor()
 
         async with aiohttp.ClientSession() as session:
-            # 특정 카테고리가 주어진 경우 해당 카테고리만 처리
-            categories = {category: category_tickers[category]} if category else category_tickers
-
-            for category, tickers in categories.items():
+            # 모든 카테고리를 순차적으로 처리
+            for category, tickers in category_tickers.items():
                 for ticker in tickers:
                     try:
                         print(f"Processing ticker: {ticker} ({category})")
