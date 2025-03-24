@@ -1,43 +1,47 @@
+import os
 from datetime import datetime
-import pymysql
+from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup
-import schedule
-import time
+import logging
 
-DB_CONFIG = {
-    "host": "localhost",
-    "user": "root",
-    "password": "2561",
-    "database": "imsolo",
-    "charset": "utf8mb4"
-}
+# 로그 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-def save_news_to_db(news_items):
-    """스크래핑한 뉴스 데이터를 MySQL에 저장."""
-    connection = pymysql.connect(**DB_CONFIG)
-    cursor = connection.cursor()
+# .env 파일 로드
+load_dotenv("db.env")
 
-    for item in news_items:
-        print("저장할 데이터:", item)  # 디버깅용 로그 추가
-        cursor.execute(
-            """
-            INSERT INTO news (title, summary, link, time_info, publication_date)
-            VALUES (%s, %s, %s, %s, NOW())
-            ON DUPLICATE KEY UPDATE
-                summary = VALUES(summary),
-                link = VALUES(link),
-                time_info = VALUES(time_info),
-                publication_date = NOW()
-            """,
-            (item["title"], item["summary"], item["link"], item["time_info"]),
-        )
+# 환경 변수에서 데이터베이스 설정 가져오기
+HOST = os.getenv('HOST')
+USER = os.getenv('USER')
+PASSWORD = os.getenv('PASSWORD')
+DATABASE = os.getenv('DATABASE')
 
-    connection.commit()
-    cursor.close()
-    connection.close()
+# SQLAlchemy 엔진 생성
+engine = create_engine(f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}/{DATABASE}")
 
-def scrape_headlines(limit=10):
+def create_news_table_if_not_exists():
+    """news 테이블이 없으면 생성합니다."""
+    with engine.connect() as connection:
+        connection.execute(text("""
+            CREATE TABLE IF NOT EXISTS `news` (
+              `id` bigint(20) NOT NULL AUTO_INCREMENT,
+              `link` varchar(255) DEFAULT NULL,
+              `publication_date` datetime(6) DEFAULT NULL,
+              `summary` varchar(255) DEFAULT NULL,
+              `time_info` varchar(255) DEFAULT NULL,
+              `title` varchar(255) DEFAULT NULL,
+              PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+        """))
+    logger.info("news 테이블이 확인되었습니다.")
+
+def scrape_headlines(limit=15):
     """매일경제 증권 최신 뉴스에서 헤드라인과 링크를 스크래핑."""
     url = "https://www.mk.co.kr/news/stock/latest/"
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -70,27 +74,39 @@ def scrape_headlines(limit=10):
                 'time_info': time_info
             })
 
-        save_news_to_db(news_items)
         return news_items
     except Exception as e:
-        print(f"헤드라인 스크래핑 중 오류 발생: {e}")
+        logger.error(f"헤드라인 스크래핑 중 오류 발생: {e}")
         return []
 
-def fetch_and_store_news():
-    """뉴스를 스크래핑하고 MySQL에 저장."""
-    print(f"[{datetime.now()}] 뉴스 스크래핑 시작...")
-    scrape_headlines(limit=10)
-    print(f"[{datetime.now()}] 뉴스 스크래핑 완료.")
+def save_news_to_db(news_items):
+    """스크래핑한 뉴스 데이터를 MySQL에 저장. title과 summary가 모두 동일한 경우 추가하지 않음."""
+    with engine.connect() as connection:
+        for item in news_items:
+            # 동일한 title과 summary가 있는지 먼저 확인
+            result = connection.execute(text(
+                "SELECT 1 FROM news WHERE title = :title AND summary = :summary LIMIT 1"
+            ), {"title": item["title"], "summary": item["summary"]})
+            exists = result.fetchone() is not None
 
-# 스케줄 설정: 1시간마다 실행
-schedule.every(5).seconds.do(fetch_and_store_news)
+            # 동일한 title과 summary가 없는 경우에만 삽입
+            if not exists:
+                logger.info(f"저장할 데이터: {item['title']}")
+                connection.execute(text("""
+                    INSERT INTO news (title, summary, link, time_info, publication_date)
+                    VALUES (:title, :summary, :link, :time_info, NOW())
+                """), item)
+            else:
+                logger.info(f"중복된 뉴스 발견, 건너뜀: {item['title']}")
+        connection.commit()
+
+def main():
+    """메인 함수: 뉴스를 스크래핑하고 MySQL에 저장."""
+    logger.info(f"뉴스 스크래핑 시작...")
+    create_news_table_if_not_exists()
+    news_items = scrape_headlines(limit=20)
+    save_news_to_db(news_items)
+    logger.info(f"뉴스 스크래핑 완료.")
 
 if __name__ == "__main__":
-    print("뉴스 스케줄러가 시작되었습니다.")
-    fetch_and_store_news()  # 첫 실행 시 바로 한 번 실행
-    while True:
-        try:
-            schedule.run_pending()  # 예약된 작업 실행
-            time.sleep(1)  # CPU 과부하 방지를 위해 1초 대기
-        except Exception as e:
-            print(f"[{datetime.now()}] 메인 루프에서 오류 발생: {e}")
+    main()

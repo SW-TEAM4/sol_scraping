@@ -1,0 +1,5 @@
+# 매일 오전 9시에 스크래퍼 실행
+0 9 * * * cd /app && python /app/scripts/news_scraper.py >> /app/logs/news.log 2>&1
+0 9 * * * cd /app && python /app/scripts/index_scraper.py >> /app/logs/index.log 2>&1
+0 9 * * * cd /app && python /app/scripts/category_scraper.py >> /app/logs/category.log 2>&1
+0 9 * * * cd /app && python /app/scripts/stock_scraper.py >> /app/logs/stock.log 2>&1
